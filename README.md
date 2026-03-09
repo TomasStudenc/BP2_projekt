@@ -54,6 +54,7 @@ Externé knižnice je možné nainštalovať pomocou správcu balíkov pip.
 Aplikáciu je možné spustiť hlavným súborom:
 
 ```
+pip install -r requirements.txt
 python BP2_TSP.py
 ```
 
