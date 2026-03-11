@@ -8,7 +8,8 @@ import BP2_GA #GA algoritmus
 import BP2_ABC #ABC algoritmus
 import BP2_ACO #ACO algoritmus
 import BP2_PSO #PSO algoritmus
-
+import threading
+import queue
 import time #knižnica na čas  používa sa na zistenie času behu algoritmov
 import matplotlib#používa sa na vyzualizáciu výsledkov
 import matplotlib.pyplot as plt #využíva sa na vyzualizáciu výsledkov
@@ -486,70 +487,170 @@ if __name__ == "__main__":
     controls_frame = tk.LabelFrame(right_frame, text="Controls", font=("Arial", 11, "bold"), bg="#f0f0f0", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
     controls_frame.grid(row=2, column=0, columnspan=2, pady=(10, 0), sticky="ew")
     #funkcia enter buttonu na spustenie simulácie
+    log_queue = queue.Queue()  # Thread-safe message queue
+
+
+    def poll_log_queue():
+        try:
+            root.winfo_exists()  # raises TclError if window is destroyed
+        except tk.TclError:
+            return  # window is gone, stop rescheduling
+
+        while True:
+            try:
+                msg, color = log_queue.get_nowait()
+                log_message(msg, color)
+            except queue.Empty:
+                break
+        root.after(100, poll_log_queue)
+    def thread_log(msg, color="black"):
+        log_queue.put((msg, color))
+
     def on_enter():
-        if len(cords) < 3: # podmienka aby TSP malo zmysel
-            messagebox.showwarning("Not Enough Cities", "Please add at least 3 cities before running.") # error massage na 0,1,2 vrcholy
+        if len(cords) < 3:
+            messagebox.showwarning("Not Enough Cities", "Please add at least 3 cities before running.")
             return
+
         params = {k: (float(v.get()) if '.' in v.get() else int(v.get())) for k, v in entry_widgets.items()}
         clear_log()
-        log_message("Running ACO...","blue")
-        try: # skúsys spustiť ACO ak hodí error tak sa to logne
-            start_time = time.time()
-            aco_data = BP2_ACO.ACO(cords, params)
-            log_message("Done ✅", "green")
-            log_message(f"{round(time.time() - start_time,2)} seconds","green")
-        except ZeroDivisionError:
-            log_message("❌ Cannot place two cities at the same position!", "red")
-            log_message("Please remove duplicate points and reset.", "red")
-            return
-        except Exception as e:
-            log_message("ACO failed reset required ❌\n error: " + str(e), "red")
-            return
-        log_message("Running GA...", "blue")
-        try:# skúsys spustiť GA ak hodí error tak sa to logne
-            start_time = time.time()
-            ga_data = BP2_GA.GA(cords, params)
-            log_message("Done ✅", "green")
-            log_message(f"{round(time.time() - start_time,2)} seconds","green")
-        except ZeroDivisionError:
-            log_message("❌ Cannot place two cities at the same position!", "red")
-            log_message("Please remove duplicate points and reset.", "red")
-            return
-        except Exception as e:
-            log_message("GA failed reset required ❌\n error: " + str(e), "red")
-            return
-        log_message("Running ABC...", "blue")
-        try:# skúsys spustiť ABC ak hodí error tak sa to logne
-            start_time = time.time()
-            abc_data = BP2_ABC.ABC(cords, params)
-            log_message("Done ✅", "green")
-            log_message(f"{round(time.time() - start_time,2)} seconds","green")
-        except ZeroDivisionError:
-            log_message("❌ Cannot place two cities at the same position!", "red")
-            log_message("Please remove duplicate points and reset.", "red")
-            return
-        except Exception as e:
-            log_message("ABC failed reset required ❌\n error: " + str(e), "red")
-            return
-        log_message("Running PSO...", "blue")
-        try:# skúsys spustiť PSO ak hodí error tak sa to logne
-            start_time = time.time()
-            pso_data = BP2_PSO.PSO(cords, params)
-            log_message("Done ✅", "green")
-            log_message(f"{round(time.time() - start_time,2)} seconds","green")
-        except ZeroDivisionError:
-            log_message("❌ Cannot place two cities at the same position!", "red")
-            log_message("Please remove duplicate points and reset.", "red")
-            return
-        except Exception as e:
-            log_message("PSO failed reset required ❌\n error: " + str(e), "red")
-            return
-        log_message("Displaying results...","green")
-        try:
-            display_comparison(cords, aco_data, ga_data, abc_data, pso_data, params)
-            log_message("Results displayed succesfully", "green")
-        except:
-            log_message("Results display failed", "red")
+
+        # Shared result containers — threads write here, main thread reads after join
+        results = {
+            "aco": None,
+            "ga": None,
+            "abc": None,
+            "pso": None,
+        }
+        # Shared error flags — if a thread fails it sets its flag to an error string
+        errors = {
+            "aco": None,
+            "ga": None,
+            "abc": None,
+            "pso": None,
+        }
+
+        # ------------------------------------------------------------------
+        # Worker functions — one per algorithm
+        # Each function runs in its own thread.
+        # ------------------------------------------------------------------
+
+        def run_aco():
+            thread_log("Running ACO...", "blue")
+            try:
+                start = time.time()
+                results["aco"] = BP2_ACO.ACO(cords, params)
+                elapsed = round(time.time() - start, 2)
+                thread_log(f"ACO finished successfully ✅  — {elapsed}s", "green")
+            except ZeroDivisionError:
+                errors["aco"] = "ZeroDivisionError"
+                thread_log("ACO ❌ — Two cities share the same position!", "red")
+            except Exception as e:
+                errors["aco"] = str(e)
+                thread_log(f"ACO ❌ failed — {e}", "red")
+
+        def run_ga():
+            thread_log("Running GA...", "blue")
+            try:
+                start = time.time()
+                results["ga"] = BP2_GA.GA(cords, params)
+                elapsed = round(time.time() - start, 2)
+                thread_log(f"GA  finished successfully ✅  — {elapsed}s", "green")
+            except ZeroDivisionError:
+                errors["ga"] = "ZeroDivisionError"
+                thread_log("GA  ❌ — Two cities share the same position!", "red")
+            except Exception as e:
+                errors["ga"] = str(e)
+                thread_log(f"GA  ❌ failed — {e}", "red")
+
+        def run_abc():
+            thread_log("Running ABC...", "blue")
+            try:
+                start = time.time()
+                results["abc"] = BP2_ABC.ABC(cords, params)
+                elapsed = round(time.time() - start, 2)
+                thread_log(f"ABC finished successfully ✅  — {elapsed}s", "green")
+            except ZeroDivisionError:
+                errors["abc"] = "ZeroDivisionError"
+                thread_log("ABC ❌ — Two cities share the same position!", "red")
+            except Exception as e:
+                errors["abc"] = str(e)
+                thread_log(f"ABC ❌ failed — {e}", "red")
+
+        def run_pso():
+            thread_log("Running PSO...", "blue")
+            try:
+                start = time.time()
+                results["pso"] = BP2_PSO.PSO(cords, params)
+                elapsed = round(time.time() - start, 2)
+                thread_log(f"PSO finished successfully ✅  — {elapsed}s", "green")
+            except ZeroDivisionError:
+                errors["pso"] = "ZeroDivisionError"
+                thread_log("PSO ❌ — Two cities share the same position!", "red")
+            except Exception as e:
+                errors["pso"] = str(e)
+                thread_log(f"PSO ❌ failed — {e}", "red")
+
+        # ------------------------------------------------------------------
+        # Orchestrator — waits for all threads, then shows results.
+        # Runs in its own thread so the tkinter main loop is never blocked.
+        # ------------------------------------------------------------------
+
+        def orchestrate():
+            # Disable the Run button while algorithms are running
+            run_btn.config(state="disabled")
+
+            threads = [
+                threading.Thread(target=run_aco, daemon=True),
+                threading.Thread(target=run_ga, daemon=True),
+                threading.Thread(target=run_abc, daemon=True),
+                threading.Thread(target=run_pso, daemon=True),
+            ]
+
+            overall_start = time.time()
+
+            # Launch all 4 threads simultaneously
+            for t in threads:
+                t.start()
+
+            # Wait for every thread to finish
+            for t in threads:
+                t.join()
+
+            total = round(time.time() - overall_start, 2)
+
+            # Check whether any algorithm failed
+            failed = [name.upper() for name, err in errors.items() if err is not None]
+            if failed:
+                thread_log(f"\nCompleted with errors in {total}s. Failed: {', '.join(failed)}", "red")
+                thread_log("Fix the issues above and press Reset before retrying.", "red")
+                run_btn.config(state="normal")
+                return
+
+            thread_log(f"\nAll algorithms finished in {total}s — displaying results...", "green")
+
+            # Display results back on the main thread (matplotlib + tkinter must
+            # run on the main thread; schedule via root.after with delay=0)
+            root.after(0, lambda: _show_results(results, params))
+            run_btn.config(state="normal")
+
+        def _show_results(results, params):
+            try:
+                display_comparison(
+                    cords,
+                    results["aco"],
+                    results["ga"],
+                    results["abc"],
+                    results["pso"],
+                    params,
+                )
+                log_message("Results displayed successfully ✅", "green")
+            except Exception as e:
+                log_message(f"Results display failed ❌ — {e}", "red")
+
+        # Kick off the orchestrator thread
+        threading.Thread(target=orchestrate, daemon=True).start()
+
+
     #funkcia pre button na nahrávanie pozadia
     def upload_background():
         global background_path, bg_preview, bg_image_id
@@ -625,7 +726,7 @@ if __name__ == "__main__":
     #vymaže sa pozadie
     #resetuje sa log
     def reset():
-        global cities, bg_preview, bg_image_id
+        global cities, bg_preview, bg_image_id, background_path
         canvas.delete("city")
         if bg_image_id:              # remove background if present
             canvas.delete(bg_image_id)
@@ -641,7 +742,9 @@ if __name__ == "__main__":
     # Buttons
     button_style = {"font": ("Arial", 10, "bold"), "width": 20, "height": 1}
     #button na on_enter
-    tk.Button(controls_frame, text="Run Comparison", command=on_enter, bg="#4CAF50", fg="white", **button_style).pack(pady=5)
+    run_btn = tk.Button(controls_frame, text="Run Comparison", command=on_enter, bg="#4CAF50", fg="white",
+                        **button_style)
+    run_btn.pack(pady=5)
     #button na ubload background
     tk.Button(controls_frame, text="Upload Background", command=upload_background, bg="#2196F3", fg="white", **button_style).pack(pady=5)
     #reset button
@@ -663,5 +766,14 @@ if __name__ == "__main__":
     canvas.bind("<Button-3>", undo)
     #lavé tlačidlo na on_click pridanie mesta
     canvas.bind("<Button-1>", on_click)
+
+
+    def on_close():
+        root.after_cancel  # cancels pending after callbacks
+        root.destroy()
+
+
+    root.protocol("WM_DELETE_WINDOW", on_close)
+    poll_log_queue()
     #definovanie spustitelnosti kódu
     root.mainloop()
