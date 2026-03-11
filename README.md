@@ -38,7 +38,8 @@ Súbor BP2_TSP.py integruje všetky algoritmické moduly do jedného uceleného 
 Aplikácia je programovaná v jazyku Python 3.13.
 
 Na spustenie aplikácie je potrebné mať nainštalované nasledujúce knižnice:
-
+- threading
+- queue
 - random
 - math
 - time
