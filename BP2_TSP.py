@@ -363,7 +363,7 @@ if __name__ == "__main__":
         messagebox.showinfo("GA Parameters", """Genetic Algorithm:
     - GA generations: Number of iterations.
     - Population size: Number of solutions per generation.
-    - Elit rate: Portion of best solutions kept.
+    - Elite rate: Portion of best solutions kept.
     - Mutation rate: Probability of a random swap.""")
 
     def show_info_abc():
