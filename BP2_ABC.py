@@ -13,7 +13,8 @@ def ABC(cords, params):
     outlooker_rate = 1 - employ_rate#výpočet na zystenie počtu prihliadacích včiel
     scout_rate = float(params.get("scout_rate", 0.01))#percento skautou v populácií
     seed = int(params.get("ABC_seed", 173))#seed aby sme mali rovanké náhodné hodnoty
-    random.seed(seed)#nastavenei seedu
+    rnd_abc = random.Random(seed)#vytvorenie random generatora
+    
     #funkcia na výpočet vzdialenosti medzi dvoma bodmi
     def dist(a, b):
         return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
@@ -28,7 +29,7 @@ def ABC(cords, params):
     #funkcia na lokálne prehladávanie riešenia
     def local_search(genome):
         new_sol = genome[:]#kopírovanie genómu
-        i, j = random.sample(range(len(genome)), 2)#vyberie dva hodnoty
+        i, j = rnd_abc.sample(range(len(genome)), 2)#vyberie dva hodnoty
         new_sol[i], new_sol[j] = new_sol[j], new_sol[i]#prehodí hodnoty
         total = route_length(new_sol, cords)#vypočíta celkovú vzdialenosť
         return total, new_sol
@@ -36,7 +37,7 @@ def ABC(cords, params):
     class EmployBee:
         #prvotné nastavenie včiel
         def __init__(self):
-            self.genome = random.sample(range(len(cords)), len(cords))#generovanie genómu
+            self.genome = rnd_abc.sample(range(len(cords)), len(cords))#generovanie genómu
             self.fitness = route_length(self.genome, cords)#výpočet fitness
     #class na prihliadajúce včely
     class Outlooker:
@@ -70,7 +71,7 @@ def ABC(cords, params):
         total = sum(inv_fit)#sčíta fitness hodnoty
         probs = [f / total for f in inv_fit]#pravdepodobnosť výberu daného riešenia
         for _ in range(len(out_population)):#prechádzanie populácie outlookerov
-            chosen = random.choices(e_population, weights=probs, k=1)[0]#výber riešenia na základe pravdepodobnostiô
+            chosen = rnd_abc.choices(e_population, weights=probs, k=1)[0]#výber riešenia na základe pravdepodobnostiô
             new_fit, new_sol = local_search(chosen.genome)#lokálne prehladávanie riešenia
             if new_fit < chosen.fitness:#zistenie či je fitness lepšie
                 chosen.fitness = new_fit#pridelenie fitness
@@ -79,8 +80,8 @@ def ABC(cords, params):
     #funkcia pre scout včely
     def scout_bee(e_population):
         for bee in e_population:#prechádzanie populácie
-            if random.random() < scout_rate:#pravdepodobnosť scoutingu
-                bee.genome = random.sample(range(len(cords)), len(cords))#generovanie nového riešenia
+            if rnd_abc.random() < scout_rate:#pravdepodobnosť scoutingu
+                bee.genome = rnd_abc.sample(range(len(cords)), len(cords))#generovanie nového riešenia
                 bee.fitness = route_length(bee.genome, cords)#ohodnotenie riešenia
         return e_population
 

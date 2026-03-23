@@ -14,7 +14,8 @@ def ACO(cords, params):
     evap_rate = float(params.get("Evaporation rate", 0.1))#množsvo evaporácie feromónov
     Q = float(params.get("Q", 100.0))#množstvo feromónov pri ohodnocovaní
     seed = int(params.get("ACO_seed", 173))#random seed aby sme mali rovanké náhodné hodnoty
-    random.seed(seed)#priradenie seedu
+    rnd_aco = random.Random(seed)#priradenie seedu
+    
     #class na prostredie
     class Environment:
         #prvotné nastavnie prostredia
@@ -42,13 +43,13 @@ def ACO(cords, params):
         return [n / total for n in num]#vráti maticu pravdepodobností
     #funkcia na vytvorenie cesty
     def construct_tour(env):
-        start = random.randint(0, env.cities - 1)#vyberie náhodný index
+        start = rnd_aco.randint(0, env.cities - 1)#vyberie náhodný index
         tour = [start]#prily náhodný index ako počiatočný bod
-        unvisited = list(set(range(env.cities)) - {start})# vytvorí list nenavštívených miest
+        unvisited = [i for i in range(env.cities) if i != start]# vytvorí list nenavštívených miest
         current = start# nastavý current na štart
         while unvisited:#kým existujú nenavštívené vrchli
             probs = probability(env, current, unvisited)#výpočet pravdepodobnostnej matice
-            next_city = random.choices(unvisited, weights=probs)[0]#vyberie dalšei vrchol na základe pravdepodobnosti
+            next_city = rnd_aco.choices(unvisited, weights=probs)[0]#vyberie dalšei vrchol na základe pravdepodobnosti
             tour.append(next_city)#pridá vrchol do cesty
             unvisited.remove(next_city)#vymaže vrchol z nenavštívených
             current = next_city#presunie sa na ďlaši vrchol

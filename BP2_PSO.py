@@ -13,7 +13,8 @@ def PSO(cords, params):
     c2 = float(params.get("c2", 1.5))#koeficinet na globálne zlepšovanie
     w = float(params.get("weight", 0.9))# váha častíc
     seed = int(params.get("PSO_seed", 173))#random seed aby sme mali vždy rovanké random hodnoty
-    random.seed(seed)#pridelenie seedu
+    rnd_pso= random.Random(seed)#vytvorenie random objektu
+    
 
     num_city = len(cords)#počet vrcholov v grafe
     #funkcia na výpočet vzdialenosti medzi dvoma bodmi
@@ -35,7 +36,7 @@ def PSO(cords, params):
             diff_positions = [i for i in range(len(source)) if new[i] != target[i]]#najde pozície kde sa sorce a taget líššia
             if not diff_positions:#ak už neexistuje možná zmena tak sa ciklus ukončí
                 break
-            idx = random.choice(diff_positions)#vyberia hodnotu kde sa sorce a taget líšia
+            idx = rnd_pso.choice(diff_positions)#vyberia hodnotu kde sa sorce a taget líšia
             target_val = target[idx]#pridelý hodnotu z taget do temp premennej
 
             current_pos = new.index(target_val)#získanie indexu
@@ -46,13 +47,13 @@ def PSO(cords, params):
     class Particle:
         #prvotné nastavenie populácie
         def __init__(self):
-            self.position = random.sample(range(num_city), num_city)#nastavenie priebehu riešenia
+            self.position = rnd_pso.sample(range(num_city), num_city)#nastavenie priebehu riešenia
             self.best_position = self.position[:]#hodnota najlepšieho riešenia
             self.b_fitness = route_length(self.position, cords)#hodnota fitness
         #funkcia na aktualizovanie
         def update(self, g_best, coords, w, c1, c2, iteration, max_iterations):
             current_w = w - (w - 0.2) * (iteration / max_iterations)#výpočet váhy pohybu
-            r1, r2 = random.random(), random.random()#generovanie random hodnôt na rohodovanie o zlepšovaní smerom ku globanemu a lokálnemu maximu
+            r1, r2 = rnd_pso.random(), rnd_pso.random()#generovanie random hodnôt na rohodovanie o zlepšovaní smerom ku globanemu a lokálnemu maximu
             new_pos = self.position[:]#nakopírovanie pozície
             cognitive_intensity = c1 * r1#hodnota na lokálne vylepšovanie
             new_pos = apply_swaps(new_pos, self.best_position, cognitive_intensity)#vylepšenie v lokálnom smere
@@ -60,10 +61,10 @@ def PSO(cords, params):
             social_intensity = c2 * r2#hodnota na globálne vylepšovanie
             new_pos = apply_swaps(new_pos, g_best, social_intensity)#vylepšenie v globalnom smere
 
-            if random.random() < current_w * 0.2:  #náhodný pohyb v priestore na predídenie lokálnemu minimu
-                num_mutations = random.randint(1, max(2, num_city // 20))#počet mutovaných dvojíc
+            if rnd_pso.random() < current_w * 0.2:  #náhodný pohyb v priestore na predídenie lokálnemu minimu
+                num_mutations = rnd_pso.randint(1, max(2, num_city // 20))#počet mutovaných dvojíc
                 for _ in range(num_mutations):
-                    i, j = random.sample(range(num_city), 2)#výber náhodných hodnôt
+                    i, j = rnd_pso.sample(range(num_city), 2)#výber náhodných hodnôt
                     new_pos[i], new_pos[j] = new_pos[j], new_pos[i]#výmena hodnôt
 
             self.position = new_pos#nastavenie pozicie na novú poziciu

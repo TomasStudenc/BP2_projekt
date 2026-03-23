@@ -16,7 +16,8 @@ def GA(cords, params):
     elit_rate = float(params.get("Elit rate", 0.25))#percento populácie ktorá prechádza do ďalšej generácie bez zmeny
     mutation_rate = float(params.get("Mutation rate", 0.1))#pravdepodobnosť mutácie
     seed = int(params.get("GA_seed", 173))#seed na ktorom beží random aby pri testovaní sme sledovali rovnakú náhodnosť pri menení parametrov
-    random.seed(seed)#nastavenie seedu do randomu
+    rnd_ga = random.Random(seed)#nastavenie seedu do randomu
+    
     num_c = len(cords)#celkový počet vrcholov v grafe
     #funkcia na výpočet vzdialenosti medzi dvoma bodmi
     def dist(a, b):
@@ -35,7 +36,7 @@ def GA(cords, params):
         def __init__(self):
             # vytvorenie genomu jedinca
             #genome reprezentuje poradie vrcholov ktoré jednotlivec prejde
-            self.genome = random.sample(range(num_c), num_c)
+            self.genome = rnd_ga.sample(range(num_c), num_c)
             #ohodnotenie jednotlivca
             self.fitness = 0.0
         #funkcia na hodnotene cesty
@@ -44,12 +45,12 @@ def GA(cords, params):
             return self.fitness
     #funkcia na výber člonov populácie na kríženie
     def tournament_selection(pop):
-        pick = random.sample(pop, 3)#vyberie 3 náhodných člonov populácie
+        pick = rnd_ga.sample(pop, 3)#vyberie 3 náhodných člonov populácie
         pick.sort(key=lambda x: x.fitness)#usporiada ich od najlepšého po najhoršieho
         return pick[0]#vyberie najlepšieho
     #funkcia na kríženie
     def crossover(p1, p2):#vstupujú dvaja členovia populácie
-        cut = random.randint(1, num_c - 2)#vyberie miesto kde sa genome rozdelí
+        cut = rnd_ga.randint(1, num_c - 2)#vyberie miesto kde sa genome rozdelí
         child1_genome = p1.genome[:cut] + [g for g in p2.genome if g not in p1.genome[:cut]]#poskladá nový genom tak aby bola prvá časť z p1 a druhá z p2
         child2_genome = p2.genome[:cut] + [g for g in p1.genome if g not in p2.genome[:cut]]#poskladá nový genom tak aby bola prvá časť z p2 a druhá z p1
         c1, c2 = Person(), Person() # vytvorý nových človoc populácie ako child1 a child2
@@ -57,8 +58,8 @@ def GA(cords, params):
         return c1, c2#vráti deti
     #funkcia na mutáciu
     def mutation(person):
-        if random.random() < mutation_rate:#vyberie sa náhodná hodnota a zistí či sa bude mutovať alebo nie
-            a, b = random.sample(range(num_c), 2)#vyberie 2 náhodné gény
+        if rnd_ga.random() < mutation_rate:#vyberie sa náhodná hodnota a zistí či sa bude mutovať alebo nie
+            a, b = rnd_ga.sample(range(num_c), 2)#vyberie 2 náhodné gény
             person.genome[a], person.genome[b] = person.genome[b], person.genome[a]#vymení poradie týchto génov
 
     population = [Person() for _ in range(pop_size)]#vytvorenie novej populácie
