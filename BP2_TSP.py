@@ -9,6 +9,7 @@ import BP2_ABC # ABC algoritmus
 import BP2_ACO # ACO algoritmus
 import BP2_PSO # PSO algoritmus
 import BP2_FFA # FFA algoritmus
+import BP2_CSA # CSA algoritmus
 import threading
 import queue
 import time          # knižnica na čas – používa sa na zistenie času behu algoritmov
@@ -34,6 +35,8 @@ pop_size          = 0  # velkosť populácie pri GA
 bee_count         = 0  # velkosť populácie pri ABC
 particle_count    = 0  # velkosť populácie pri PSO
 firefly_count     = 0  # velkosť populácie pri FFA
+nest_count        = 0  # veľkosť populácie pri CSA
+best_tour_gen_csa = 0  # najlepšia generácia pri CSA
 best_tour_gen_aco = 0  # najlepšia generácia pri ACO
 best_tour_gen_ga  = 0  # najlepšia generácia pre GA
 best_tour_gen_abc = 0  # najlepšia generácia pri ABC
@@ -49,6 +52,7 @@ ALGO_COLORS = {
     "ABC": "magenta",
     "PSO": "blue",
     "FFA": "darkorange",
+    "CSA": "cyan",
 }
 
 # ==========================================================
@@ -78,6 +82,9 @@ def display_comparison(coords, results_dict, params):
         elif name == "FFA":
             route, dists, best_gen = data
             return route, dists, dists[-1], best_gen
+        elif name == "CSA":
+            route, dists, best_gen = data
+            return route, dists, dists[-1], best_gen
         return None, [], 0.0, 0
 
     normalized = {}
@@ -100,11 +107,6 @@ def display_comparison(coords, results_dict, params):
                 ax.imshow(bg, extent=[0, size, 0, size], zorder=0, aspect="auto")
         except Exception:
             ax.set_facecolor("lightgray")
-
-    # ---- Pevné rozloženie 2 riadky x 4 stĺpce ----
-    # Route sloty:  [0,0] [0,1] [1,0] [1,1]
-    # Konvergencia: [0,2]   Tabuľka:  [1,2]
-    # Parametre:    [0,3]             [1,3]
     route_slots = [(0, 0), (0, 1), (1, 0), (1, 1)]
 
     fig, axs = plt.subplots(2, 4, figsize=(20, 8))
@@ -208,6 +210,14 @@ def display_comparison(coords, results_dict, params):
             f"Beta0:          {params.get('Beta0')}\n"
             f"Gamma:          {params.get('Gamma')}"
         ),
+        "CSA": (
+        f"CSA:\n"
+        f"Generations:    {params.get('CSA generations')}\n"
+        f"Nest count:     {params.get('Nest count')}\n"
+        f"pa:             {params.get('CSA_pa')}\n"
+        f"Beta:           {params.get('CSA_beta')}\n"
+        f"Step size:      {params.get('CSA_step')}"
+    ),
     }
 
     # Prvé 2 algoritmy → vrchný panel [0,3]
@@ -296,7 +306,7 @@ if __name__ == "__main__":
         else:
             factor = 1.0
         return f"#{int(r*factor*255):02x}{int(g*factor*255):02x}{int(b*factor*255):02x}"
-
+    #funckai na upravovanie frieb v log boxe
     def update_color(*args):
         global current_color
         current_color = wavelength_to_rgb(color_slider.get())
@@ -325,7 +335,7 @@ if __name__ == "__main__":
                       wrap="word", yscrollcommand=log_scroll.set)
     log_box.pack(side="left", fill="both", expand=True)
     log_scroll.config(command=log_box.yview)
-
+    #funkcia na záznami v logu boxe
     def log_message(msg, color="black"):
         log_box.config(state="normal")
         log_box.insert("end", msg + "\n", ("color",))
@@ -333,7 +343,7 @@ if __name__ == "__main__":
         log_box.see("end")
         log_box.config(state="disabled")
         root.update_idletasks()
-
+    #funkcia na čistenie logu
     def clear_log():
         log_box.config(state="normal")
         log_box.delete("1.0", "end")
@@ -351,6 +361,7 @@ if __name__ == "__main__":
     entry_widgets = {}  # mapa param-key → Entry widget (pre všetky algoritmy)
 
     # ---------- INFO POPUP FUNKCIE ----------
+    # text pre info buton pre aco
     def show_info_aco():
         messagebox.showinfo("ACO Parameters", """Ant Colony Optimization:
     - ACO generations: Number of iterations.
@@ -359,21 +370,21 @@ if __name__ == "__main__":
     - Beta: Influence of visibility (distance).
     - Evaporation rate: Rate pheromones decay.
     - Q: Pheromone deposit amount.""")
-
+    # text pre info buton pre ga
     def show_info_ga():
         messagebox.showinfo("GA Parameters", """Genetic Algorithm:
     - GA generations: Number of iterations.
     - Population size: Number of solutions per generation.
     - Elite rate: Portion of best solutions kept.
     - Mutation rate: Probability of a random swap.""")
-
+    # text pre info buton pre abc
     def show_info_abc():
         messagebox.showinfo("ABC Parameters", """Artificial Bee Colony:
     - ABC generations: Number of iterations.
     - Bee count: Total bees in the colony.
     - employ_rate: Portion of employed bees.
     - scout_rate: Chance of random exploration.""")
-
+    # text pre info buton pre pso
     def show_info_pso():
         messagebox.showinfo("PSO Parameters", """Particle Swarm Optimization:
     - PSO generations: Number of iterations.
@@ -381,7 +392,7 @@ if __name__ == "__main__":
     - c1: Cognitive coefficient (self-learning).
     - c2: Social coefficient (group-learning).
     - weight: Inertia controlling momentum.""")
-
+    # text pre info buton pre ffa
     def show_info_ffa():
         messagebox.showinfo("FFA Parameters", """Firefly Algorithm:
     - FFA generations: Number of iterations.
@@ -391,6 +402,15 @@ if __name__ == "__main__":
     - Gamma: Light absorption (higher = less attraction range).
     - FFA_seed: Random seed for reproducibility.""")
 
+    #text pre info buton pre csa
+    def show_info_csa():
+        messagebox.showinfo("CSA Parameters", """Cuckoo Search Algorithm:
+    - CSA generations: Number of iterations.
+    - Nest count: Number of nests (population size).
+    - CSA_pa: Probability of discovering a foreign egg (0–1).
+    - CSA_beta: Shape of Lévy distribution (1–3).
+    - CSA_step: Step size scaling for Lévy flight.
+    - CSA_seed: Random seed for reproducibility.""")
     def round_info_button(parent, command):
         return ctk.CTkButton(
             parent, text="ℹ", width=40, height=10, corner_radius=20,
@@ -399,12 +419,31 @@ if __name__ == "__main__":
         )
 
     # ---------- PARAM FRAMES ----------
-    # Všetky framy sú vytvorené raz; viditeľnosť riadi refresh_param_layout()
+    # --- CSA ---
+    #vytvorenie param framu pre csa
+    csa_frame = tk.LabelFrame(right_frame, text="CSA Parameters", font=("Arial", 11, "bold"), bg="#e8f4f8", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    # default nastavenei parametrov pre csa
+    csa_defaults = {
+        "CSA generations": 1000,
+        "Nest count": 30,
+        "CSA_pa": 0.25,
+        "CSA_beta": 1.5,
+        "CSA_step": 0.3,
+        "CSA_seed": 173,
+    }
+    for i, (key, default) in enumerate(csa_defaults.items()):
+        tk.Label(csa_frame, text=f"{key}:", bg="#e8f4f8",
+                 font=("Arial", 9)).grid(row=i, column=0, sticky="w", pady=3)
+        e = tk.Entry(csa_frame, width=12, font=("Arial", 9))
+        e.insert(0, str(default))
+        e.grid(row=i, column=1, padx=(5, 0), pady=3)
+        entry_widgets[key] = e
+    round_info_button(csa_frame, show_info_csa).grid(columnspan=2, pady=5)
 
     # --- ACO ---
-    aco_frame = tk.LabelFrame(right_frame, text="ACO Parameters",
-                               font=("Arial", 11, "bold"), bg="#e8f4f8",
-                               relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    #vytvorenei param framu pre aco
+    aco_frame = tk.LabelFrame(right_frame, text="ACO Parameters", font=("Arial", 11, "bold"), bg="#e8f4f8", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    # default nastavenei parametrov pre aco
     aco_defaults = {
         "ACO generations": 1000,
         "Ant count": 5,
@@ -424,9 +463,9 @@ if __name__ == "__main__":
     round_info_button(aco_frame, show_info_aco).grid(columnspan=2, pady=5)
 
     # --- GA ---
-    ga_frame = tk.LabelFrame(right_frame, text="GA Parameters",
-                              font=("Arial", 11, "bold"), bg="#f8f4e8",
-                              relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    #vytvorenie param framu pre ga
+    ga_frame = tk.LabelFrame(right_frame, text="GA Parameters", font=("Arial", 11, "bold"), bg="#f8f4e8", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    # default nastavenei parametrov pre ga
     ga_defaults = {
         "GA generations": 1000,
         "Population size": 100,
@@ -444,9 +483,9 @@ if __name__ == "__main__":
     round_info_button(ga_frame, show_info_ga).grid(columnspan=2, pady=5)
 
     # --- ABC ---
-    abc_frame = tk.LabelFrame(right_frame, text="ABC Parameters",
-                               font=("Arial", 11, "bold"), bg="#f8e8f4",
-                               relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    #vytvorenie param framu pre abc
+    abc_frame = tk.LabelFrame(right_frame, text="ABC Parameters", font=("Arial", 11, "bold"), bg="#f8e8f4", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    # default nastavenei parametrov pre abc
     abc_defaults = {
         "ABC generations": 1000,
         "Bee count": 20,
@@ -464,9 +503,9 @@ if __name__ == "__main__":
     round_info_button(abc_frame, show_info_abc).grid(columnspan=2, pady=5)
 
     # --- PSO ---
-    pso_frame = tk.LabelFrame(right_frame, text="PSO Parameters",
-                               font=("Arial", 11, "bold"), bg="#e8f8f4",
-                               relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    #vytvorenie param framu pre pso
+    pso_frame = tk.LabelFrame(right_frame, text="PSO Parameters", font=("Arial", 11, "bold"), bg="#e8f8f4", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    # default nastavenei parametrov pre pso
     pso_defaults = {
         "PSO generations": 1000,
         "Particle count": 10,
@@ -485,11 +524,9 @@ if __name__ == "__main__":
     round_info_button(pso_frame, show_info_pso).grid(columnspan=2, pady=5)
 
     # --- FFA ---
-    # Pozor: kľúč "FFA_Alpha" — odlišný od ACO "Alpha" aby nedošlo ku konfliktu.
-    # BP2_FFA.py musí čítať params.get("FFA_Alpha", 0.2)  nie  params.get("Alpha", 0.2)
-    ffa_frame = tk.LabelFrame(right_frame, text="FFA Parameters",
-                               font=("Arial", 11, "bold"), bg="#fff3e0",
-                               relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    #vytvorenie param framu pre ffa
+    ffa_frame = tk.LabelFrame(right_frame, text="FFA Parameters",font=("Arial", 11, "bold"), bg="#fff3e0", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    #default nastavenei parametrov pre ffa
     ffa_defaults = {
         "FFA generations": 1000,
         "Firefly count": 30,
@@ -517,13 +554,14 @@ if __name__ == "__main__":
     controls_frame.columnconfigure(1, weight=1)
 
     # Mapa názov algoritmu → frame objekt
-    ALL_ALGO_NAMES = ["ACO", "GA", "ABC", "PSO", "FFA"]
+    ALL_ALGO_NAMES = ["ACO", "GA", "ABC", "PSO", "FFA", "CSA"]
     algo_frame_map = {
         "ACO": aco_frame,
         "GA":  ga_frame,
         "ABC": abc_frame,
         "PSO": pso_frame,
         "FFA": ffa_frame,
+        "CSA": csa_frame,
     }
 
     # Sloty v gridu right_frame — poradie vypĺňania (ľavý stĺpec prvý)
@@ -535,8 +573,8 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------
     #  refresh_param_layout — zobrazí len framy vybraných algoritmov
     # ------------------------------------------------------------------
+    #funckia na zobrazovanie param framov len pre vybraté algoritmi
     def refresh_param_layout():
-        """Skryje všetky param-framy a znovu zobrazí len vybrané v poradí slotov."""
         for frame in algo_frame_map.values():
             frame.grid_remove()
 
@@ -563,8 +601,9 @@ if __name__ == "__main__":
         "ABC": "#f8e8f4",
         "PSO": "#e8f8f4",
         "FFA": "#fff3e0",
+        "CSA": "#e8f8f4",
     }
-
+    #funckia riadiaca vyberani algoritmov zo zoznamu
     def open_algorithm_selector():
         popup = tk.Toplevel(root)
         popup.title("Select Algorithms")
@@ -650,7 +689,7 @@ if __name__ == "__main__":
     #  LOG QUEUE — thread-safe logging
     # ==========================================================
     log_queue = queue.Queue()
-
+    #funkcia zabezpečujúca logovanie v multitread systéme
     def poll_log_queue():
         try:
             root.winfo_exists()
@@ -695,17 +734,17 @@ if __name__ == "__main__":
 
         results = {algo: None for algo in selected_algorithms}
         errors  = {algo: None for algo in selected_algorithms}
-
+        #pridradenei funkcí algoritmom, vyberá zo súboru
         algo_functions = {
             "aco": BP2_ACO.ACO,
             "ga":  BP2_GA.GA,
             "abc": BP2_ABC.ABC,
             "pso": BP2_PSO.PSO,
             "ffa": BP2_FFA.FFA,
+            "csa": BP2_CSA.CSA,
         }
-
+        #funkcia na vyberanie thread funckae pre vybraté algoritmi
         def make_runner(algo):
-            """Vráti thread-funkciu pre daný algoritmus (closure)."""
             func  = algo_functions[algo]
             label = algo.upper()
             def run():
@@ -722,24 +761,20 @@ if __name__ == "__main__":
                     errors[algo] = str(e)
                     thread_log(f"{label} ❌ failed — {e}", "red")
             return run
-
+        #funkcia na vytvorenei samostaných threadov
         def orchestrate():
             run_btn.config(state="disabled")
-
             threads = [
                 threading.Thread(target=make_runner(algo), daemon=True)
                 for algo in selected_algorithms
             ]
-
             overall_start = time.time()
             for t in threads:
                 t.start()
             for t in threads:
                 t.join()
-
             total  = round(time.time() - overall_start, 2)
             failed = [a.upper() for a in selected_algorithms if errors[a] is not None]
-
             if failed:
                 thread_log(
                     f"\nCompleted with errors in {total}s. Failed: {', '.join(failed)}",
@@ -748,16 +783,15 @@ if __name__ == "__main__":
                 thread_log("Fix the issues above and press Reset before retrying.", "red")
                 run_btn.config(state="normal")
                 return
-
             thread_log(
                 f"\nAll algorithms finished in {total}s — displaying results...", "green"
             )
             root.after(0, lambda: _show_results(results, params))
             run_btn.config(state="normal")
-
+        #funkcia na zobrazovanie výsledkov sysmulácií a zápis do logu
         def _show_results(res, prm):
             try:
-                # Uppercase kľúče pre display_comparison; preskočiť None výsledky
+                # Uppercase kľúče pre display_comparison;
                 selected_res = {
                     algo.upper(): res[algo]
                     for algo in selected_algorithms
@@ -773,6 +807,7 @@ if __name__ == "__main__":
     # ==========================================================
     #  OSTATNÉ FUNKCIE (Canvas, Generate, Reset, Background)
     # ==========================================================
+    #funkcia na ridanie pozadia
     def upload_background():
         global background_path, bg_preview, bg_image_id
         path = filedialog.askopenfilename(
@@ -787,7 +822,7 @@ if __name__ == "__main__":
                 canvas.delete(bg_image_id)
             bg_image_id = canvas.create_image(0, 0, anchor="nw", image=bg_preview)
             canvas.tag_lower(bg_image_id)
-
+    #funkcia na pridávanie vrcholov do kreslacej plochy
     def on_click(event):
         global cities
         x, y = event.x, event.y
@@ -800,7 +835,7 @@ if __name__ == "__main__":
         city_shapes.append((dot_id, text_id))
         cities += 1
         info_label.config(text=f"Cities: {cities}")
-
+    #funkcia na mazanie posledného pridaného vrcholu
     def undo(event=None):
         global cities
         if city_shapes:
@@ -813,7 +848,7 @@ if __name__ == "__main__":
             canvas.update()
         else:
             messagebox.showinfo("Undo", "No more cities to remove!")
-
+    #funkcia na generovanie vrcholov
     def generate_random_cities():
         global cities
         reset()
@@ -843,7 +878,8 @@ if __name__ == "__main__":
             city_shapes.append((dot_id, text_id))
             cities += 1
         info_label.config(text=f"Cities: {cities}")
-
+    #resetovanie kreliacej polchy
+    #vymaže všetky vrcholy, logbox a pozadie
     def reset():
         global cities, bg_preview, bg_image_id, background_path
         canvas.delete("city")
@@ -861,32 +897,33 @@ if __name__ == "__main__":
     # ==========================================================
     #  BUTTONS v controls_frame
     # ==========================================================
-    button_style = {"font": ("Arial", 10, "bold"), "width": 20, "height": 1}
-
+    button_style = {"font": ("Arial", 10, "bold"), "width": 20, "height": 1} # štýl buttonov
+    #button na spustenie simulácie
     run_btn = tk.Button(controls_frame, text="▶  Run Comparison",
                          command=on_enter, bg="#4CAF50", fg="white", **button_style)
     run_btn.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-
+    #button na vybratie algoritmov na porovnávanie
     tk.Button(controls_frame, text="⚙  Select Algorithms",
               command=open_algorithm_selector,
               bg="#9C27B0", fg="white", **button_style).grid(
               row=0, column=1, padx=5, pady=5, sticky="ew")
-
+    #button na pridanie pozadia
     tk.Button(controls_frame, text="Upload Background",
               command=upload_background,
               bg="#2196F3", fg="white", **button_style).grid(
               row=1, column=0, padx=5, pady=5, sticky="ew")
-
+    #button na resetovanie kresliacej plochy
     tk.Button(controls_frame, text="Reset Cities",
               command=reset,
               bg="#f44336", fg="white", **button_style).grid(
               row=1, column=1, padx=5, pady=5, sticky="ew")
-
+    #generátor na control frame kde sú tlačidlá ovládajúce simulácie
     generate_frame = tk.Frame(controls_frame, bg="#f0f0f0")
     generate_frame.grid(row=2, column=0, columnspan=2, pady=5)
-
+    #label na počet vypísaných miest
     tk.Label(generate_frame, text="Points:", font=("Arial", 9, "bold"),
              bg="#f0f0f0").pack(side="left", padx=(0, 5))
+    #generate frame kde sa nachádza input okno a tlačidlo na genrovanie vrcholov
     generate_entry = tk.Entry(generate_frame, width=6, font=("Arial", 9))
     generate_entry.insert(0, "20")
     generate_entry.pack(side="left", padx=(0, 5))
@@ -896,13 +933,14 @@ if __name__ == "__main__":
               font=("Arial", 10, "bold"), height=1).pack(side="left")
 
     city_shapes = []
-    canvas.bind("<Button-3>", undo)
-    canvas.bind("<Button-1>", on_click)
+    canvas.bind("<Button-3>", undo) #prvím tlačidlom myši sa vymaže posledný vrchol
+    canvas.bind("<Button-1>", on_click) #lavým tlačidlom myši sa pridá vrchol
 
+    #funkcia na ukončenei po zavretí okna
     def on_close():
-        root.after_cancel  # cancels pending after callbacks
+        root.after_cancel
         root.destroy()
-
+    #podmenka ak sa okno zavrie tak sa vypnú procesy
     root.protocol("WM_DELETE_WINDOW", on_close)
     poll_log_queue()
     root.mainloop()
