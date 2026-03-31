@@ -15,6 +15,10 @@ V projekte sú implementované naledujúce algoritmy:
 
 - Particle Swarm Optimization (PSO)
 
+- Firefly Algorithm (FFA)
+
+- Cuckoo Search Algorithm (CSA)
+
 Každý algoritmus je implementovaný ako samostatný modul, čo umožnuje jeho samostatné testovanie a pracovanie s ním v rámci jedného experimentálneho prostredia.
 
 ## Štruktúra projektu
@@ -31,6 +35,10 @@ Projekt pozostáva z nasledujúcich hlavných súborov:
 
 - BP2_PSO.py – implementácia Particle Swarom Optimization
 
+- BP2_CSA.py - implementácia Cuckoo Search Algorithm
+
+- BP2_FFA.py - implemntácia Firefly Algorithm
+  
 Súbor BP2_TSP.py integruje všetky algoritmické moduly do jedného uceleného systému a predstavuje centrálnu riadiacu jednotku aplikácie.
 
 ## Technické požiadavky
@@ -55,7 +63,7 @@ Externé knižnice je možné nainštalovať pomocou správcu balíkov pip.
 Aplikáciu je možné spustiť hlavným súborom:
 
 ```
-pip install -r requirements.txt
+pip install pillow matplotlib customtkinter
 python BP2_TSP.py
 ```
 
