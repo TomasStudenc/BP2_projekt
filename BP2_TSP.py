@@ -55,17 +55,101 @@ ALGO_COLORS = {
     "CSA": "cyan",
 }
 
+#definovanie farieb pre light a dark mód pre matplot okno
+MATPLOTLIB_THEMES = {
+    "dark": {
+        "axes.facecolor": "#1e1e1e",
+        "figure.facecolor": "#1e1e1e",
+        "axes.edgecolor": "white",
+        "axes.labelcolor": "white",
+        "xtick.color": "white",
+        "ytick.color": "white",
+        "text.color": "white",
+        "grid.color": "#555555",
+        "savefig.facecolor": "#1e1e1e",
+        "savefig.edgecolor": "#1e1e1e",
+        "legend.facecolor": "#2b2b2b",
+        "legend.edgecolor": "white",
+    },
+    "light": {
+        "axes.facecolor": "white",
+        "figure.facecolor": "white",
+        "axes.edgecolor": "black",
+        "axes.labelcolor": "black",
+        "xtick.color": "black",
+        "ytick.color": "black",
+        "text.color": "black",
+        "grid.color": "#cccccc",
+        "savefig.facecolor": "white",
+        "savefig.edgecolor": "white",
+        "legend.facecolor": "white",
+        "legend.edgecolor": "black",
+    }
+}
+#definovanie farieb pre light a dark mód pre hlavné GUI
+THEMES = {
+    "dark": {
+        "bg_main": "#2b2b2b",
+        "bg_frame": "#3a3a3a",
+        "bg_left": "#1e1e1e",
+        "bg_canvas": "#1e1e1e",
+        "text": "white",
+        "log_bg": "#111111"
+    },
+    "light": {
+        "bg_main": "#f0f0f0",
+        "bg_frame": "#ffffff",
+        "bg_left": "#ffffff",
+        "bg_canvas": "white",
+        "text": "black",
+        "log_bg": "#fafafa"
+    }
+}
+#definovanie farieb pre light a dark mód pre pozadie algorithm frame
+ALGO_FRAME_COLORS = {
+    "dark": {
+        "CSA": "#12343f",
+        "ACO": "#14333f",
+        "GA": "#3f3414",
+        "ABC": "#3f1434",
+        "PSO": "#143f34",
+        "FFA": "#3f2a14",
+        "CONTROLS": "#303030",
+    },
+    "light": {
+        "CSA": "#d9f2ff",
+        "ACO": "#d9faff",
+        "GA": "#fff2c2",
+        "ABC": "#ffd9ef",
+        "PSO": "#d9fff2",
+        "FFA": "#ffe6c2",
+        "CONTROLS": "#f2f2f2",
+    }
+}
+#definovanie farieb pre light a dark mód pre buttony v control frame
+CONTROL_BUTTON_COLORS = {
+    "dark": {
+        "reset":   {"fg": "#b71c1c", "hover": "#7f0000", "text": "white"},
+        "change":  {"fg": "#6a1b9a", "hover": "#38006b", "text": "white"},
+        "start":   {"fg": "#1b5e20", "hover": "#003300", "text": "white"},
+        "applybg": {"fg": "#f9a825", "hover": "#c17900", "text": "black"},
+    },
+    "light": {
+        "reset":   {"fg": "#e53935", "hover": "#ab000d", "text": "white"},
+        "change":  {"fg": "#8e24aa", "hover": "#5c007a", "text": "white"},
+        "start":   {"fg": "#43a047", "hover": "#00701a", "text": "white"},
+        "applybg": {"fg": "#ffeb3b", "hover": "#fdd835", "text": "black"},
+    }
+}
+
+matplotlib.rcParams.update(MATPLOTLIB_THEMES["dark"])
 # ==========================================================
 #  Zobrazovanie výsledkov — dynamické pre 1 až 4 algoritmy
 # ==========================================================
 def display_comparison(coords, results_dict, params):
-    """
-    results_dict: { "ACO": tuple, "GA": tuple, ... } — len vybrané algoritmy (uppercase kľúče).
-    Rozloženie je vždy pevné 2x4.  Prázdne route-sloty ostanú biele (axis off).
-    """
     matplotlib.use("TkAgg")
 
-    # ---- Normalizácia každého algoritmu na spoločný formát ----
+    #normalizovanie výsledkov
     def normalize(name, data):
         if name == "ACO":
             tours, lengths, best_gen = data
@@ -99,20 +183,19 @@ def display_comparison(coords, results_dict, params):
 
     names = list(results_dict.keys())  # zachová poradie výberu
 
-    # ---- Pomocná funkcia na pozadie ----
+    #funkcia ktorá loaduje pozadie
     def load_bg(ax):
         try:
             if background_path is not None:
                 bg = plt.imread(background_path)
                 ax.imshow(bg, extent=[0, size, 0, size], zorder=0, aspect="auto")
         except Exception:
-            ax.set_facecolor("lightgray")
+            ax.set_facecolor(matplotlib.rcParams["axes.facecolor"])
     route_slots = [(0, 0), (0, 1), (1, 0), (1, 1)]
-
     fig, axs = plt.subplots(2, 4, figsize=(20, 8))
     fig.canvas.manager.set_window_title(f"{' vs '.join(names)} — TSP Comparison")
 
-    # ---- Vykreslenie trás ----
+    #vykreslovanie trás
     for idx, name in enumerate(names):
         row, col = route_slots[idx]
         ax = axs[row, col]
@@ -122,54 +205,77 @@ def display_comparison(coords, results_dict, params):
         ys = [coords[i][1] for i in route]
         ax.plot(xs, ys, "-o", color=ALGO_COLORS[name], markersize=4, linewidth=1)
         for i, (x, y) in enumerate(coords):
-            ax.text(x + 2, y + 2, str(i), fontsize=8)
+            ax.text(x + 2, y + 2, str(i), fontsize=8, color=matplotlib.rcParams["text.color"])
         ax.set_xlim(0, size)
         ax.set_ylim(0, size)
-        ax.set_title(f"{name}  (Best = {normalized[name]['best_dist']:.1f})")
+        ax.set_title(
+            f"{name}  (Best = {normalized[name]['best_dist']:.1f})",
+            color=matplotlib.rcParams["text.color"]
+        )
 
-    # Prázdne sloty — ostanú čisté (axis off = prázdna biela plocha)
+    #ak je menej ako 4 algoritmi vykresluje prázne sloty
     for idx in range(len(names), 4):
         row, col = route_slots[idx]
+        axs[row, col].set_facecolor(matplotlib.rcParams["axes.facecolor"])
         axs[row, col].axis("off")
 
-    # ---- Graf konvergencie [0, 2] ----
+    #graf konvergencie
     ax_conv = axs[0, 2]
     ax_conv.set_title("Convergence Comparison", fontsize=11, fontweight="bold")
     ax_conv.set_xlabel("Generation")
     ax_conv.set_ylabel("Best Distance")
-    ax_conv.grid(True, alpha=0.3)
+    ax_conv.grid(True, color=matplotlib.rcParams["grid.color"], alpha=0.3)
     for name in names:
         ax_conv.plot(normalized[name]["distances"], "-",
                      color=ALGO_COLORS[name], lw=1.8, label=name)
     ax_conv.legend(loc="upper right", fontsize=8)
 
-    # ---- Tabuľka výsledkov [1, 2] ----
+    #tabulka výsledkov simulácií
     ax_table = axs[1, 2]
     ax_table.axis("off")
     ax_table.set_title("Summary Statistics", fontsize=11, fontweight="bold")
 
     summary = [(n, normalized[n]["best_dist"], normalized[n]["best_gen"]) for n in names]
-    winner  = min(summary, key=lambda x: x[1])
+    winner = min(summary, key=lambda x: x[1])
 
     table_data = [["Algorithm", "Distance", "Conv. Gen"]]
     for nm, d, g in summary:
         marker = "★" if nm == winner[0] else ""
         table_data.append([f"{nm} {marker}", f"{d:.2f}", str(g)])
 
-    table = ax_table.table(cellText=table_data, cellLoc="center", loc="center",
-                           colWidths=[0.35, 0.35, 0.3])
+    #vytvorenie tabulky
+    table = ax_table.table(
+        cellText=table_data,
+        cellLoc="center",
+        loc="center",
+        colWidths=[0.35, 0.35, 0.3]
+    )
+
     table.auto_set_font_size(False)
     table.set_fontsize(9)
     table.scale(1, 2)
+
+    #definovanie farieb bodla theme
+    header_bg = "#4CAF50" if current_theme == "light" else "#2e7d32"
+    header_fg = "black" if current_theme == "light" else "white"
+    highlight = "#ffffcc" if current_theme == "light" else "#333333"
+    text_color = matplotlib.rcParams["text.color"]
+    cell_bg = matplotlib.rcParams["axes.facecolor"]
+
     for i in range(3):
-        table[(0, i)].set_facecolor("#4CAF50")
-        table[(0, i)].set_text_props(weight="bold", color="white")
+        table[(0, i)].set_facecolor(header_bg)
+        table[(0, i)].set_text_props(weight="bold", color=header_fg)
+
     for idx2, (nm, _, _) in enumerate(summary, 1):
+        for i in range(3):
+            table[(idx2, i)].set_facecolor(cell_bg)
+            table[(idx2, i)].set_text_props(color=text_color)
+
         if nm == winner[0]:
             for i in range(3):
-                table[(idx2, i)].set_facecolor("#ffffcc")
+                table[(idx2, i)].set_facecolor(highlight)
 
-    # ---- Textové bloky parametrov pre každý algoritmus ----
+    #hyperparametre algoritmov vypísané v matplot lib
     algo_params_text = {
         "ACO": (
             f"ACO:\n"
@@ -220,13 +326,11 @@ def display_comparison(coords, results_dict, params):
     ),
     }
 
-    # Prvé 2 algoritmy → vrchný panel [0,3]
-    # Zvyšné 1–2 algoritmy → spodný panel [1,3]
     group1 = names[:2]
     group2 = names[2:]
 
     ax_p1 = axs[0, 3]
-    ax_p1.axis("off")
+    ax_p1.set_facecolor(matplotlib.rcParams["axes.facecolor"])
     if group1:
         ax_p1.set_title(f"Parameters ({' & '.join(group1)})",
                         fontsize=11, fontweight="bold")
@@ -235,7 +339,7 @@ def display_comparison(coords, results_dict, params):
                    fontsize=9, ha="center", va="center", wrap=True)
 
     ax_p2 = axs[1, 3]
-    ax_p2.axis("off")
+    ax_p2.set_facecolor(matplotlib.rcParams["axes.facecolor"])
     if group2:
         ax_p2.set_title(f"Parameters ({' & '.join(group2)})",
                         fontsize=11, fontweight="bold")
@@ -255,16 +359,120 @@ def display_comparison(coords, results_dict, params):
 # ==========================================================
 #  TKINTER GUI
 # ==========================================================
+#main používatelské rozhranie ktoré zabezpečuje interaktívne GUI spúštanie simulácií a nastavovanie parametrov
 if __name__ == "__main__":
     root = tk.Tk()
-    ctk.set_appearance_mode("light")
+    ctk.set_appearance_mode("dark")
     root.title("TSP Comparison Tool")
     root.state("zoomed")
     root.configure(bg="#f0f0f0")
 
     main_frame = tk.Frame(root, bg="#f0f0f0")
     main_frame.pack(padx=10, pady=10)
+    current_theme = "dark" #nastavenei default mód na dark
 
+    #funkcia ktorá zabezpečuje že po zmene témi obrazovky sa aplikujú správne farby
+    def apply_theme():
+        theme = THEMES[current_theme]
+        frame_colors = ALGO_FRAME_COLORS[current_theme]
+
+        # main layout
+        root.configure(bg=theme["bg_main"])
+        main_frame.configure(bg=theme["bg_main"])
+        left_frame.configure(bg=theme["bg_left"])
+        right_frame.configure(bg=theme["bg_main"])
+        canvas.configure(bg=theme["bg_canvas"])
+
+        # labels
+        instruction_label.configure(bg=theme["bg_left"], fg=theme["text"])
+        info_label.configure(bg=theme["bg_left"], fg=theme["text"])
+
+        # log
+        log_frame.configure(bg=theme["bg_left"])
+        log_box.configure(
+            bg=theme["log_bg"],
+            fg=theme["text"],
+            insertbackground=theme["text"]
+        )
+
+        # frames
+        frames = [
+            (csa_frame, "CSA"),
+            (aco_frame, "ACO"),
+            (ga_frame, "GA"),
+            (abc_frame, "ABC"),
+            (pso_frame, "PSO"),
+            (ffa_frame, "FFA"),
+            (controls_frame, "CONTROLS"),
+        ]
+
+        for frame, key in frames:
+            bg = frame_colors[key]
+            frame.configure(bg=bg, fg=theme["text"])
+
+            for widget in frame.winfo_children():
+                if isinstance(widget, tk.Label):
+                    widget.configure(bg=bg, fg=theme["text"])
+                elif isinstance(widget, tk.Entry):
+                    widget.configure(
+                        bg="#222222" if current_theme == "dark" else "white",
+                        fg=theme["text"],
+                        insertbackground=theme["text"]
+                    )
+                elif isinstance(widget, tk.Button):
+                    widget.configure(
+                        bg=bg,
+                        fg=theme["text"],
+                        activebackground=bg,
+                        activeforeground=theme["text"]
+                    )
+                elif isinstance(widget, ctk.CTkButton):
+                    widget.configure(
+                        fg_color="#1976D2" if current_theme == "light" else "#0d47a1",
+                        hover_color="#125ea8" if current_theme == "light" else "#08306b",
+                        text_color="white"
+                    )
+        # --- CONTROL PANEL BUTTON COLORS ---
+        btn_colors = CONTROL_BUTTON_COLORS[current_theme]
+
+        # --- CONTROL BUTTON COLORS ---
+        if current_theme == "dark":
+            run_btn.configure(bg="#1b5e20", fg="white", activebackground="#003300")
+            change_algo_button.configure(bg="#6a1b9a", fg="white", activebackground="#38006b")
+            apply_bg_button.configure(bg="#f9a825", fg="black", activebackground="#c17900")
+            reset_button.configure(bg="#b71c1c", fg="black", activebackground="white")
+        else:
+            run_btn.configure(bg="#43a047", fg="white", activebackground="#00701a")
+            change_algo_button.configure(bg="#8e24aa", fg="white", activebackground="#5c007a")
+            apply_bg_button.configure(bg="#ffeb3b", fg="black", activebackground="#fdd835")
+            reset_button.configure(bg="#e53935", fg="black", activebackground="white")
+
+    #prepínač medzi svetlím a tmavým módom
+    def toggle_theme():
+        global current_theme
+
+        if theme_switch.get() == 1:
+            current_theme = "dark"
+            ctk.set_appearance_mode("dark")
+        else:
+            current_theme = "light"
+            ctk.set_appearance_mode("light")
+
+        # Apply Tkinter theme
+        apply_theme()
+
+        # Apply Matplotlib theme
+        import matplotlib as mpl
+        mpl.rcParams.update(MATPLOTLIB_THEMES[current_theme])
+        plt.close("all")
+
+    theme_switch = ctk.CTkSwitch(
+        root,
+        text="Dark Mode",
+        command=toggle_theme
+    )
+    theme_switch.select()
+    theme_switch.place(relx=0.98, rely=0.02, anchor="ne")
     # ==========================================================
     #  ĽAVÁ STRANA – Canvas + Log
     # ==========================================================
@@ -283,7 +491,7 @@ if __name__ == "__main__":
     color_frame.pack(pady=10, padx=10, fill="x")
     tk.Label(color_frame, text="Dot Color:", font=("Arial", 9, "bold"),
              bg="white").pack(side="left", padx=(0, 10))
-
+    #funckia ktorá definuje slider na farby
     def wavelength_to_rgb(wavelength):
         if wavelength >= 380 and wavelength < 440:
             r = -(wavelength - 440) / (440 - 380); g = 0.0; b = 1.0
@@ -349,9 +557,7 @@ if __name__ == "__main__":
         log_box.delete("1.0", "end")
         log_box.insert("end", "Ready.\n", ("gray",))
         log_box.config(state="disabled")
-
     log_message("Ready.\n", "gray")
-
     # ==========================================================
     #  PRAVÁ STRANA – Hyperparametre
     # ==========================================================
@@ -569,10 +775,6 @@ if __name__ == "__main__":
 
     # Aktuálne vybrané algoritmy (lowercase)
     selected_algorithms = ["aco", "ga", "abc", "pso"]  # predvolené
-
-    # ------------------------------------------------------------------
-    #  refresh_param_layout — zobrazí len framy vybraných algoritmov
-    # ------------------------------------------------------------------
     #funckia na zobrazovanie param framov len pre vybraté algoritmi
     def refresh_param_layout():
         for frame in algo_frame_map.values():
@@ -591,11 +793,8 @@ if __name__ == "__main__":
 
     # Prvotné rozloženie
     refresh_param_layout()
-
-    # ------------------------------------------------------------------
-    #  open_algorithm_selector — farebný modálny popup
-    # ------------------------------------------------------------------
-    ALGO_UI_COLORS = {           # pozadie checkboxu = farba param framu
+    # pozadie checkboxu
+    ALGO_UI_COLORS = {
         "ACO": "#e8f4f8",
         "GA":  "#f8f4e8",
         "ABC": "#f8e8f4",
@@ -646,14 +845,16 @@ if __name__ == "__main__":
 
         count_label.pack(pady=8)
         update_count()  # nastavenie správneho počtu hneď po otvorení
-
+        #funckai na výber algoritmov z zoznamu
         def apply_selection():
             chosen = [k for k, v in vars_dict.items() if v.get()]
+            #musí byť viac ako jeden vybratý
             if len(chosen) < 1:
                 messagebox.showwarning("Selection Error",
                                        "Please select at least 1 algorithm.",
                                        parent=popup)
                 return
+            #max 4 na porovnanie
             if len(chosen) > 4:
                 messagebox.showwarning("Selection Error",
                                        "Maximum is 4 algorithms.",
@@ -702,13 +903,11 @@ if __name__ == "__main__":
             except queue.Empty:
                 break
         root.after(100, poll_log_queue)
-
+    #funckcia na pushovanie výsledkov do log queue
     def thread_log(msg, color="black"):
         log_queue.put((msg, color))
 
-    # ==========================================================
-    #  on_enter — spustenie simulácie
-    # ==========================================================
+    #funckia na spúštanie simulácií
     def on_enter():
         if len(cords) < 3:
             messagebox.showwarning("Not Enough Cities",
@@ -731,9 +930,10 @@ if __name__ == "__main__":
                 return
 
         clear_log()
-
+        #holdery na výsledky a errory do logov
         results = {algo: None for algo in selected_algorithms}
         errors  = {algo: None for algo in selected_algorithms}
+
         #pridradenei funkcí algoritmom, vyberá zo súboru
         algo_functions = {
             "aco": BP2_ACO.ACO,
@@ -743,6 +943,7 @@ if __name__ == "__main__":
             "ffa": BP2_FFA.FFA,
             "csa": BP2_CSA.CSA,
         }
+
         #funkcia na vyberanie thread funckae pre vybraté algoritmi
         def make_runner(algo):
             func  = algo_functions[algo]
@@ -761,6 +962,7 @@ if __name__ == "__main__":
                     errors[algo] = str(e)
                     thread_log(f"{label} ❌ failed — {e}", "red")
             return run
+
         #funkcia na vytvorenei samostaných threadov
         def orchestrate():
             run_btn.config(state="disabled")
@@ -788,6 +990,7 @@ if __name__ == "__main__":
             )
             root.after(0, lambda: _show_results(results, params))
             run_btn.config(state="normal")
+
         #funkcia na zobrazovanie výsledkov sysmulácií a zápis do logu
         def _show_results(res, prm):
             try:
@@ -807,6 +1010,7 @@ if __name__ == "__main__":
     # ==========================================================
     #  OSTATNÉ FUNKCIE (Canvas, Generate, Reset, Background)
     # ==========================================================
+
     #funkcia na ridanie pozadia
     def upload_background():
         global background_path, bg_preview, bg_image_id
@@ -822,6 +1026,7 @@ if __name__ == "__main__":
                 canvas.delete(bg_image_id)
             bg_image_id = canvas.create_image(0, 0, anchor="nw", image=bg_preview)
             canvas.tag_lower(bg_image_id)
+
     #funkcia na pridávanie vrcholov do kreslacej plochy
     def on_click(event):
         global cities
@@ -835,6 +1040,7 @@ if __name__ == "__main__":
         city_shapes.append((dot_id, text_id))
         cities += 1
         info_label.config(text=f"Cities: {cities}")
+
     #funkcia na mazanie posledného pridaného vrcholu
     def undo(event=None):
         global cities
@@ -848,6 +1054,7 @@ if __name__ == "__main__":
             canvas.update()
         else:
             messagebox.showinfo("Undo", "No more cities to remove!")
+
     #funkcia na generovanie vrcholov
     def generate_random_cities():
         global cities
@@ -878,6 +1085,7 @@ if __name__ == "__main__":
             city_shapes.append((dot_id, text_id))
             cities += 1
         info_label.config(text=f"Cities: {cities}")
+
     #resetovanie kreliacej polchy
     #vymaže všetky vrcholy, logbox a pozadie
     def reset():
@@ -898,25 +1106,42 @@ if __name__ == "__main__":
     #  BUTTONS v controls_frame
     # ==========================================================
     button_style = {"font": ("Arial", 10, "bold"), "width": 20, "height": 1} # štýl buttonov
+
     #button na spustenie simulácie
-    run_btn = tk.Button(controls_frame, text="▶  Run Comparison",
-                         command=on_enter, bg="#4CAF50", fg="white", **button_style)
+    run_btn = tk.Button(
+        controls_frame,
+        text="▶  Run Comparison",
+        command=on_enter,
+        **button_style
+    )
     run_btn.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-    #button na vybratie algoritmov na porovnávanie
-    tk.Button(controls_frame, text="⚙  Select Algorithms",
-              command=open_algorithm_selector,
-              bg="#9C27B0", fg="white", **button_style).grid(
-              row=0, column=1, padx=5, pady=5, sticky="ew")
-    #button na pridanie pozadia
-    tk.Button(controls_frame, text="Upload Background",
-              command=upload_background,
-              bg="#2196F3", fg="white", **button_style).grid(
-              row=1, column=0, padx=5, pady=5, sticky="ew")
-    #button na resetovanie kresliacej plochy
-    tk.Button(controls_frame, text="Reset Cities",
-              command=reset,
-              bg="#f44336", fg="white", **button_style).grid(
-              row=1, column=1, padx=5, pady=5, sticky="ew")
+
+    #button na zmenu algoritmov
+    change_algo_button = tk.Button(
+        controls_frame,
+        text="⚙  Select Algorithms",
+        command=open_algorithm_selector,
+        **button_style
+    )
+    change_algo_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+
+    # button na nahrávanie pozadia
+    apply_bg_button = tk.Button(
+        controls_frame,
+        text="Upload Background",
+        command=upload_background,
+        **button_style
+    )
+    apply_bg_button.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
+
+    #buton na vyčistenie logboxu a kresliacej plochy
+    reset_button = tk.Button(
+        controls_frame,
+        text="Reset Cities",
+        command=reset,
+        **button_style
+    )
+    reset_button.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
     #generátor na control frame kde sú tlačidlá ovládajúce simulácie
     generate_frame = tk.Frame(controls_frame, bg="#f0f0f0")
     generate_frame.grid(row=2, column=0, columnspan=2, pady=5)
@@ -931,7 +1156,6 @@ if __name__ == "__main__":
               command=generate_random_cities,
               bg="#FF9800", fg="white",
               font=("Arial", 10, "bold"), height=1).pack(side="left")
-
     city_shapes = []
     canvas.bind("<Button-3>", undo) #prvím tlačidlom myši sa vymaže posledný vrchol
     canvas.bind("<Button-1>", on_click) #lavým tlačidlom myši sa pridá vrchol
@@ -943,4 +1167,5 @@ if __name__ == "__main__":
     #podmenka ak sa okno zavrie tak sa vypnú procesy
     root.protocol("WM_DELETE_WINDOW", on_close)
     poll_log_queue()
+    apply_theme()
     root.mainloop()
