@@ -212,6 +212,8 @@ def display_comparison(coords, results_dict, params):
             f"{name}  (Best = {normalized[name]['best_dist']:.1f})",
             color=matplotlib.rcParams["text.color"]
         )
+        ax.set_xticks([])
+        ax.set_yticks([])
 
     #ak je menej ako 4 algoritmi vykresluje prázne sloty
     for idx in range(len(names), 4):
@@ -337,7 +339,8 @@ def display_comparison(coords, results_dict, params):
         ax_p1.text(0.5, 0.5,
                    "\n\n".join(algo_params_text[n] for n in group1),
                    fontsize=9, ha="center", va="center", wrap=True)
-
+    ax_p1.set_xticks([])
+    ax_p1.set_yticks([])
     ax_p2 = axs[1, 3]
     ax_p2.set_facecolor(matplotlib.rcParams["axes.facecolor"])
     if group2:
@@ -346,8 +349,10 @@ def display_comparison(coords, results_dict, params):
         ax_p2.text(0.5, 0.5,
                    "\n\n".join(algo_params_text[n] for n in group2),
                    fontsize=9, ha="center", va="center", wrap=True)
+    ax_p2.set_xticks([])
+    ax_p2.set_yticks([])
 
-    plt.tight_layout()
+    plt.tight_layout(pad=0.2, w_pad=1.25, h_pad=0.3)
     manager = plt.get_current_fig_manager()
     try:
         manager.window.state("zoomed")
@@ -1031,13 +1036,22 @@ if __name__ == "__main__":
     def on_click(event):
         global cities
         x, y = event.x, event.y
+        new_coord = (x, size - y)
+
+        # Check if a city already exists at this position (within 12px radius)
         r = 6
-        dot_id  = canvas.create_oval(x - r, y - r, x + r, y + r,
-                                      fill=current_color, tags="city")
-        text_id = canvas.create_text(x, y - 15, text=cities,
-                                      tags="city", font=("Arial", 8))
-        cords.append((x, size - y))
-        city_shapes.append((dot_id, text_id))
+        for coord in cords:
+            existing_x = coord[0]
+            existing_y = size - coord[1]
+            if abs(existing_x - x) < r * 2 and abs(existing_y - y) < r * 2:
+                messagebox.showwarning("Duplicate Position",
+                                       "A city already exists at this position!")
+                return
+
+        dot_id = canvas.create_oval(x - r, y - r, x + r, y + r,
+                                    fill=current_color, tags="city")
+        cords.append(new_coord)
+        city_shapes.append(dot_id)
         cities += 1
         info_label.config(text=f"Cities: {cities}")
 
@@ -1045,9 +1059,8 @@ if __name__ == "__main__":
     def undo(event=None):
         global cities
         if city_shapes:
-            dot_id, text_id = city_shapes.pop()
+            dot_id = city_shapes.pop()
             canvas.delete(dot_id)
-            canvas.delete(text_id)
             cords.pop()
             cities -= 1
             info_label.config(text=f"Cities: {cities}")
@@ -1079,10 +1092,8 @@ if __name__ == "__main__":
                     break
             dot_id  = canvas.create_oval(x - r, y - r, x + r, y + r,
                                           fill=current_color, tags="city")
-            text_id = canvas.create_text(x, y - 15, text=cities,
-                                          tags="city", font=("Arial", 8))
             cords.append((x, size - y))
-            city_shapes.append((dot_id, text_id))
+            city_shapes.append((dot_id))
             cities += 1
         info_label.config(text=f"Cities: {cities}")
 
