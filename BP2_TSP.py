@@ -25,9 +25,6 @@ from PIL import Image, ImageTk  # importovanie vlastných obrázkov na pozadie
 size = 500  # definuje velkosť kresliacej plochy
 cords = []  # zoznam koordinácií bodov v priestore
 cities = 0  # počet vrcholov grafu
-background_path = None  # definovaná path na pozadie
-bg_preview  = None  # holder pre importovaný obrázok
-bg_image_id = None  # id obrázka na mazanie
 
 # holdery na výsledky simulácií
 ant_count         = 0  # velkosť populácie pri ACO
@@ -43,7 +40,7 @@ best_tour_gen_abc = 0  # najlepšia generácia pri ABC
 best_tour_gen_pso = 0  # najlepšia generácia pri PSO
 best_tour_gen_ffa = 0  # najlepšia generácia pri FFA
 
-current_color = "#0000FF"  # predvolená farba vrcholov
+current_color = "#FF6B00"  # predvolená farba vrcholov
 
 # Farebná paleta pre každý algoritmus (konzistentná v celom programe)
 ALGO_COLORS = {
@@ -183,14 +180,6 @@ def display_comparison(coords, results_dict, params):
 
     names = list(results_dict.keys())  # zachová poradie výberu
 
-    #funkcia ktorá loaduje pozadie
-    def load_bg(ax):
-        try:
-            if background_path is not None:
-                bg = plt.imread(background_path)
-                ax.imshow(bg, extent=[0, size, 0, size], zorder=0, aspect="auto")
-        except Exception:
-            ax.set_facecolor(matplotlib.rcParams["axes.facecolor"])
     route_slots = [(0, 0), (0, 1), (1, 0), (1, 1)]
     fig, axs = plt.subplots(2, 4, figsize=(20, 8))
     fig.canvas.manager.set_window_title(f"{' vs '.join(names)} — TSP Comparison")
@@ -199,7 +188,6 @@ def display_comparison(coords, results_dict, params):
     for idx, name in enumerate(names):
         row, col = route_slots[idx]
         ax = axs[row, col]
-        load_bg(ax)
         route = normalized[name]["route"]
         xs = [coords[i][0] for i in route]
         ys = [coords[i][1] for i in route]
@@ -442,15 +430,13 @@ if __name__ == "__main__":
 
         # --- CONTROL BUTTON COLORS ---
         if current_theme == "dark":
-            run_btn.configure(bg="#1b5e20", fg="white", activebackground="#003300")
-            change_algo_button.configure(bg="#6a1b9a", fg="white", activebackground="#38006b")
-            apply_bg_button.configure(bg="#f9a825", fg="black", activebackground="#c17900")
-            reset_button.configure(bg="#b71c1c", fg="black", activebackground="white")
+            run_btn.configure(bg="#1b5e20", fg="white", activebackground="#003300", activeforeground="white")
+            change_algo_button.configure(bg="#6a1b9a", fg="white", activebackground="#38006b", activeforeground="white")
+            reset_button.configure(bg="#b71c1c", fg="white", activebackground="#7f0000", activeforeground="white")
         else:
-            run_btn.configure(bg="#43a047", fg="white", activebackground="#00701a")
-            change_algo_button.configure(bg="#8e24aa", fg="white", activebackground="#5c007a")
-            apply_bg_button.configure(bg="#ffeb3b", fg="black", activebackground="#fdd835")
-            reset_button.configure(bg="#e53935", fg="black", activebackground="white")
+            run_btn.configure(bg="#43a047", fg="white", activebackground="#00701a", activeforeground="white")
+            change_algo_button.configure(bg="#8e24aa", fg="white", activebackground="#5c007a", activeforeground="white")
+            reset_button.configure(bg="#e53935", fg="white", activebackground="#ab000d", activeforeground="white")
 
     #prepínač medzi svetlím a tmavým módom
     def toggle_theme():
@@ -491,50 +477,6 @@ if __name__ == "__main__":
     canvas = tk.Canvas(left_frame, width=size, height=size, bg="white")
     canvas.pack()
 
-    # Color Slider
-    color_frame = tk.Frame(left_frame, bg="white")
-    color_frame.pack(pady=10, padx=10, fill="x")
-    tk.Label(color_frame, text="Dot Color:", font=("Arial", 9, "bold"),
-             bg="white").pack(side="left", padx=(0, 10))
-    #funckia ktorá definuje slider na farby
-    def wavelength_to_rgb(wavelength):
-        if wavelength >= 380 and wavelength < 440:
-            r = -(wavelength - 440) / (440 - 380); g = 0.0; b = 1.0
-        elif wavelength >= 440 and wavelength < 490:
-            r = 0.0; g = (wavelength - 440) / (490 - 440); b = 1.0
-        elif wavelength >= 490 and wavelength < 510:
-            r = 0.0; g = 1.0; b = -(wavelength - 510) / (510 - 490)
-        elif wavelength >= 510 and wavelength < 580:
-            r = (wavelength - 510) / (580 - 510); g = 1.0; b = 0.0
-        elif wavelength >= 580 and wavelength < 645:
-            r = 1.0; g = -(wavelength - 645) / (645 - 580); b = 0.0
-        elif wavelength >= 645 and wavelength <= 780:
-            r = 1.0; g = 0.0; b = 0.0
-        else:
-            r = 0.0; g = 0.0; b = 0.0
-        if wavelength >= 380 and wavelength < 420:
-            factor = 0.3 + 0.7 * (wavelength - 380) / (420 - 380)
-        elif wavelength >= 700 and wavelength <= 780:
-            factor = 0.3 + 0.7 * (780 - wavelength) / (780 - 700)
-        else:
-            factor = 1.0
-        return f"#{int(r*factor*255):02x}{int(g*factor*255):02x}{int(b*factor*255):02x}"
-    #funckai na upravovanie frieb v log boxe
-    def update_color(*args):
-        global current_color
-        current_color = wavelength_to_rgb(color_slider.get())
-        color_preview.config(bg=current_color)
-
-    color_slider = tk.Scale(color_frame, from_=380, to=780, orient="horizontal",
-                             length=350, command=update_color, bg="white",
-                             showvalue=False, sliderlength=20, width=15)
-    color_slider.set(470)
-    color_slider.pack(side="left", padx=5)
-    color_preview = tk.Label(color_frame, text="", width=8, height=1,
-                              bg=current_color, relief="solid", borderwidth=2)
-    color_preview.pack(side="left")
-    update_color()
-
     info_label = tk.Label(left_frame, text=f"Cities: {cities}",
                            font=("Arial", 9, "bold"), bg="white", fg="#333")
     info_label.pack(pady=(0, 0))
@@ -574,7 +516,7 @@ if __name__ == "__main__":
     # ---------- INFO POPUP FUNKCIE ----------
     # text pre info buton pre aco
     def show_info_aco():
-        messagebox.showinfo("ACO Parameters", """Ant Colony Optimization:
+        messagebox.showinfo("ACO Parameters\n Ant Colony Optimization", """Ant Colony Optimization:
     - ACO generations: Number of iterations.
     - Ant count: Number of ants constructing paths.
     - Alpha: Influence of pheromone trail.
@@ -632,7 +574,7 @@ if __name__ == "__main__":
     # ---------- PARAM FRAMES ----------
     # --- CSA ---
     #vytvorenie param framu pre csa
-    csa_frame = tk.LabelFrame(right_frame, text="CSA Parameters", font=("Arial", 11, "bold"), bg="#e8f4f8", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    csa_frame = tk.LabelFrame(right_frame, text="Cuckoo Search Algorithm", font=("Arial", 11, "bold"), bg="#e8f4f8", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
     # default nastavenei parametrov pre csa
     csa_defaults = {
         "CSA generations": 1000,
@@ -653,7 +595,7 @@ if __name__ == "__main__":
 
     # --- ACO ---
     #vytvorenei param framu pre aco
-    aco_frame = tk.LabelFrame(right_frame, text="ACO Parameters", font=("Arial", 11, "bold"), bg="#e8f4f8", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    aco_frame = tk.LabelFrame(right_frame, text="Ant Colony Optimization", font=("Arial", 11, "bold"), bg="#e8f4f8", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
     # default nastavenei parametrov pre aco
     aco_defaults = {
         "ACO generations": 1000,
@@ -675,7 +617,7 @@ if __name__ == "__main__":
 
     # --- GA ---
     #vytvorenie param framu pre ga
-    ga_frame = tk.LabelFrame(right_frame, text="GA Parameters", font=("Arial", 11, "bold"), bg="#f8f4e8", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    ga_frame = tk.LabelFrame(right_frame, text="Genetic Algorithm", font=("Arial", 11, "bold"), bg="#f8f4e8", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
     # default nastavenei parametrov pre ga
     ga_defaults = {
         "GA generations": 1000,
@@ -695,7 +637,7 @@ if __name__ == "__main__":
 
     # --- ABC ---
     #vytvorenie param framu pre abc
-    abc_frame = tk.LabelFrame(right_frame, text="ABC Parameters", font=("Arial", 11, "bold"), bg="#f8e8f4", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    abc_frame = tk.LabelFrame(right_frame, text="Artificial Bee Colony", font=("Arial", 11, "bold"), bg="#f8e8f4", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
     # default nastavenei parametrov pre abc
     abc_defaults = {
         "ABC generations": 1000,
@@ -715,7 +657,7 @@ if __name__ == "__main__":
 
     # --- PSO ---
     #vytvorenie param framu pre pso
-    pso_frame = tk.LabelFrame(right_frame, text="PSO Parameters", font=("Arial", 11, "bold"), bg="#e8f8f4", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    pso_frame = tk.LabelFrame(right_frame, text="Particle Swarm Optimization", font=("Arial", 11, "bold"), bg="#e8f8f4", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
     # default nastavenei parametrov pre pso
     pso_defaults = {
         "PSO generations": 1000,
@@ -736,7 +678,7 @@ if __name__ == "__main__":
 
     # --- FFA ---
     #vytvorenie param framu pre ffa
-    ffa_frame = tk.LabelFrame(right_frame, text="FFA Parameters",font=("Arial", 11, "bold"), bg="#fff3e0", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
+    ffa_frame = tk.LabelFrame(right_frame, text="Firefly Algorithm",font=("Arial", 11, "bold"), bg="#fff3e0", relief=tk.GROOVE, borderwidth=2, padx=15, pady=10)
     #default nastavenei parametrov pre ffa
     ffa_defaults = {
         "FFA generations": 1000,
@@ -1015,23 +957,6 @@ if __name__ == "__main__":
     # ==========================================================
     #  OSTATNÉ FUNKCIE (Canvas, Generate, Reset, Background)
     # ==========================================================
-
-    #funkcia na ridanie pozadia
-    def upload_background():
-        global background_path, bg_preview, bg_image_id
-        path = filedialog.askopenfilename(
-            title="Select Background Image",
-            filetypes=[("Image Files", "*.jpg *.jpeg *.png *.bmp *.gif")]
-        )
-        if path:
-            background_path = path
-            img = Image.open(path).resize((size, size))
-            bg_preview = ImageTk.PhotoImage(img)
-            if bg_image_id:
-                canvas.delete(bg_image_id)
-            bg_image_id = canvas.create_image(0, 0, anchor="nw", image=bg_preview)
-            canvas.tag_lower(bg_image_id)
-
     #funkcia na pridávanie vrcholov do kreslacej plochy
     def on_click(event):
         global cities
@@ -1100,13 +1025,8 @@ if __name__ == "__main__":
     #resetovanie kreliacej polchy
     #vymaže všetky vrcholy, logbox a pozadie
     def reset():
-        global cities, bg_preview, bg_image_id, background_path
+        global cities
         canvas.delete("city")
-        if bg_image_id:
-            canvas.delete(bg_image_id)
-            bg_image_id = None
-        background_path = None
-        bg_preview = None
         cords.clear()
         city_shapes.clear()
         cities = 0
@@ -1125,7 +1045,7 @@ if __name__ == "__main__":
         command=on_enter,
         **button_style
     )
-    run_btn.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+    run_btn.grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
     #button na zmenu algoritmov
     change_algo_button = tk.Button(
@@ -1134,28 +1054,19 @@ if __name__ == "__main__":
         command=open_algorithm_selector,
         **button_style
     )
-    change_algo_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-
-    # button na nahrávanie pozadia
-    apply_bg_button = tk.Button(
-        controls_frame,
-        text="Upload Background",
-        command=upload_background,
-        **button_style
-    )
-    apply_bg_button.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
+    change_algo_button.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
     #buton na vyčistenie logboxu a kresliacej plochy
     reset_button = tk.Button(
         controls_frame,
-        text="Reset Cities",
+        text="Reset",
         command=reset,
         **button_style
     )
-    reset_button.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+    reset_button.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
     #generátor na control frame kde sú tlačidlá ovládajúce simulácie
     generate_frame = tk.Frame(controls_frame, bg="#f0f0f0")
-    generate_frame.grid(row=2, column=0, columnspan=2, pady=5)
+    generate_frame.grid(row=3, column=0, columnspan=2, pady=5)
     #label na počet vypísaných miest
     tk.Label(generate_frame, text="Points:", font=("Arial", 9, "bold"),
              bg="#f0f0f0").pack(side="left", padx=(0, 5))
@@ -1179,4 +1090,5 @@ if __name__ == "__main__":
     root.protocol("WM_DELETE_WINDOW", on_close)
     poll_log_queue()
     apply_theme()
+    open_algorithm_selector()
     root.mainloop()
