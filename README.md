@@ -1,44 +1,33 @@
 # Systém na grafickú vizualizáciu optimalizačných algoritmov inšpirovaných prírodou pri riešení problému obchodného cestujúceho
 
 ## Popis projektu
-Tento projekt implementuje systém na vizualizáciu metaheuristickych algoritmov pri riešení problému obchodného cestujuceho (TSP - Travelling Salesman Problem). Systém je navrhnutý na experimentálne porovnávanie algoritmov a didaktické využitie pri výučbe umelej inteligencie, evolučných algoritmov a rojovej inteligencie.
+Tento projekt implementuje systém na vizualizáciu metaheuristických algoritmov pri riešení problému obchodného cestujúceho (TSP – Travelling Salesman Problem). Systém je navrhnutý na experimentálne porovnávanie algoritmov a didaktické využitie pri výučbe umelej inteligencie, evolučných algoritmov a rojovej inteligencie.
 
-Aplikácia umožnuje nastavovať vstupné parametre algoritmov, definovať rozloženie vrcholov problému obchodného cestujúceho, spúštať simulácie a vizualizovať riešenia a priebeh algoritmov. Cieľom projektu je analyzovať kvalitu nájdených riešení, konvergenciu a výpočtové charakteristiky jednotlivých metaheuristických prístupov za rovnakých experimentálnych podmienok..
+Aplikácia umožňuje nastavovať vstupné parametre algoritmov, definovať rozloženie vrcholov problému obchodného cestujúceho, spúšťať simulácie a vizualizovať riešenia a priebeh algoritmov. Cieľom projektu je analyzovať kvalitu nájdených riešení, konvergenciu a výpočtové charakteristiky jednotlivých metaheuristických prístupov za rovnakých experimentálnych podmienok.
 
-V projekte sú implementované naledujúce algoritmy:
+V projekte sú implementované nasledujúce algoritmy:
 
 - Genetic Algorithm (GA)
-
-- Ant Colony Optimizer (ACO)
-
+- Ant Colony Optimization (ACO)
 - Artificial Bee Colony (ABC)
-
 - Particle Swarm Optimization (PSO)
-
 - Firefly Algorithm (FFA)
-
 - Cuckoo Search Algorithm (CSA)
 
-Každý algoritmus je implementovaný ako samostatný modul, čo umožnuje jeho samostatné testovanie a pracovanie s ním v rámci jedného experimentálneho prostredia.
+Každý algoritmus je implementovaný ako samostatný modul, čo umožňuje jeho nezávislé testovanie a používanie v rámci jedného experimentálneho prostredia.
 
 ## Štruktúra projektu
 
 Projekt pozostáva z nasledujúcich hlavných súborov:
 
 - BP2_TSP.py – hlavný riadiaci modul zabezpečujúci konfiguráciu parametrov, riadenie simulácie a vizualizáciu výsledkov
-
-- BP2_GA.py – implementácia Genetic algorithm
-
-- BP2_ACO.py – implementácia Ant Colony Optimizer
-
+- BP2_GA.py – implementácia genetického algoritmu
+- BP2_ACO.py – implementácia Ant Colony Optimization
 - BP2_ABC.py – implementácia Artificial Bee Colony
+- BP2_PSO.py – implementácia Particle Swarm Optimization
+- BP2_CSA.py – implementácia Cuckoo Search Algorithm
+- BP2_FFA.py – implementácia Firefly Algorithm
 
-- BP2_PSO.py – implementácia Particle Swarom Optimization
-
-- BP2_CSA.py - implementácia Cuckoo Search Algorithm
-
-- BP2_FFA.py - implemntácia Firefly Algorithm
-  
 Súbor BP2_TSP.py integruje všetky algoritmické moduly do jedného uceleného systému a predstavuje centrálnu riadiacu jednotku aplikácie.
 
 ## Technické požiadavky
@@ -46,6 +35,7 @@ Súbor BP2_TSP.py integruje všetky algoritmické moduly do jedného uceleného 
 Aplikácia je programovaná v jazyku Python 3.13.
 
 Na spustenie aplikácie je potrebné mať nainštalované nasledujúce knižnice:
+
 - threading
 - queue
 - random
@@ -54,7 +44,6 @@ Na spustenie aplikácie je potrebné mať nainštalované nasledujúce knižnice
 - matplotlib
 - tkinter
 - customtkinter
-- pillow (PIL)
 
 Externé knižnice je možné nainštalovať pomocou správcu balíkov pip.
 
@@ -63,7 +52,7 @@ Externé knižnice je možné nainštalovať pomocou správcu balíkov pip.
 Aplikáciu je možné spustiť hlavným súborom:
 
 ```
-pip install pillow matplotlib customtkinter
+pip install matplotlib customtkinter
 python BP2_TSP.py
 ```
 
