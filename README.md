@@ -20,15 +20,15 @@ Každý algoritmus je implementovaný ako samostatný modul, čo umožňuje jeho
 
 Projekt pozostáva z nasledujúcich hlavných súborov:
 
-- BP2_TSP.py – hlavný riadiaci modul zabezpečujúci konfiguráciu parametrov, riadenie simulácie a vizualizáciu výsledkov
-- BP2_GA.py – implementácia genetického algoritmu
-- BP2_ACO.py – implementácia Ant Colony Optimization
-- BP2_ABC.py – implementácia Artificial Bee Colony
-- BP2_PSO.py – implementácia Particle Swarm Optimization
-- BP2_CSA.py – implementácia Cuckoo Search Algorithm
-- BP2_FFA.py – implementácia Firefly Algorithm
+- TSPCT_main.py – hlavný riadiaci modul zabezpečujúci konfiguráciu parametrov, riadenie simulácie a vizualizáciu výsledkov
+- TSPCT_GA.py – implementácia genetického algoritmu
+- TSPCT_ACO.py – implementácia Ant Colony Optimization
+- TSPCT_ABC.py – implementácia Artificial Bee Colony
+- TSPCT_PSO.py – implementácia Particle Swarm Optimization
+- TSPCT_CSA.py – implementácia Cuckoo Search Algorithm
+- TSPCT_FFA.py – implementácia Firefly Algorithm
 
-Súbor BP2_TSP.py integruje všetky algoritmické moduly do jedného uceleného systému a predstavuje centrálnu riadiacu jednotku aplikácie.
+Súbor TSPCT_main.py integruje všetky algoritmické moduly do jedného uceleného systému a predstavuje centrálnu riadiacu jednotku aplikácie.
 
 ## Technické požiadavky
 
