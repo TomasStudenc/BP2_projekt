@@ -4,12 +4,12 @@
 # táto časť sa používa na nastavovanie hyperparametrov
 # importované BP2_*** knižnice sú mnou vytvorené algoritmy ktoré sa volajú na spúštanie simulácií
 # ==========================================================
-import BP2_GA  # GA algoritmus
-import BP2_ABC # ABC algoritmus
-import BP2_ACO # ACO algoritmus
-import BP2_PSO # PSO algoritmus
-import BP2_FFA # FFA algoritmus
-import BP2_CSA # CSA algoritmus
+import TSPCT_GA  # GA algoritmus
+import TSPCT_ABC # ABC algoritmus
+import TSPCT_ACO # ACO algoritmus
+import TSPCT_PSO # PSO algoritmus
+import TSPCT_FFA # FFA algoritmus
+import TSPCT_CSA # CSA algoritmus
 import threading
 import queue
 import time          # knižnica na čas – používa sa na zistenie času behu algoritmov
@@ -883,12 +883,12 @@ if __name__ == "__main__":
 
         #pridradenei funkcí algoritmom, vyberá zo súboru
         algo_functions = {
-            "aco": BP2_ACO.ACO,
-            "ga":  BP2_GA.GA,
-            "abc": BP2_ABC.ABC,
-            "pso": BP2_PSO.PSO,
-            "ffa": BP2_FFA.FFA,
-            "csa": BP2_CSA.CSA,
+            "aco": TSPCT_ACO.ACO,
+            "ga":  TSPCT_GA.GA,
+            "abc": TSPCT_ABC.ABC,
+            "pso": TSPCT_PSO.PSO,
+            "ffa": TSPCT_FFA.FFA,
+            "csa": TSPCT_CSA.CSA,
         }
 
         #funkcia na vyberanie thread funckae pre vybraté algoritmi
