@@ -1002,8 +1002,8 @@ if __name__ == "__main__":
             if n < 3:
                 messagebox.showwarning("Too Few Cities", "Please enter at least 3 cities.")
                 return
-            if n > 2500:
-                messagebox.showwarning("Too Many Cities", "Maximum is 2500 cities.")
+            if n > 25000:
+                messagebox.showwarning("Too Many Cities", "Maximum is 25000 cities.")
                 return
         except ValueError:
             messagebox.showerror("Invalid Input", "Please enter a valid integer.")
