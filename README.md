@@ -53,7 +53,7 @@ Aplikáciu je možné spustiť hlavným súborom:
 
 ```
 pip install matplotlib customtkinter
-python BP2_TSP.py
+python TSPCT_main.py
 ```
 
 Grafické používatelské rozhranie umožnuje nastavovanie paramtrov pre jednotlivé algoritmy, definovanie problému obchodného cestujúceho, spúštanie simulácií a vizualizáciu výsledkov simulácií.
