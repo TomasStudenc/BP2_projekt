@@ -17,6 +17,7 @@ import matplotlib    # používa sa na vyzualizáciu výsledkov
 import matplotlib.pyplot as plt  # využíva sa na vyzualizáciu výsledkov
 import tkinter as tk # využíva sa na GUI
 import random        # knižnica na generovanie náhodných hodnôt
+import xml.etree.ElementTree as ET  # knižnica na export/import XML konfiguračných súborov
 from tkinter import filedialog, messagebox  # využíva sa na GUI
 import customtkinter as ctk  # krajšie GUI a úprava buttonov
 from PIL import Image, ImageTk  # importovanie vlastných obrázkov na pozadie
@@ -1034,6 +1035,129 @@ if __name__ == "__main__":
         info_label.config(text=f"Cities: {cities}")
 
     # ==========================================================
+    #  EXPORT / IMPORT XML KONFIGURÁCIE
+    #  Zabezpečuje reprodukovateľnosť experimentov — uloží/obnoví
+    #  rozloženie vrcholov, vybrané algoritmy a všetky hyperparametre.
+    # ==========================================================
+    #funkcia na export aktuálnej konfigurácie do XML súboru
+    def export_config():
+        if not cords:
+            messagebox.showwarning("No Cities",
+                                   "Add cities before exporting a configuration.")
+            return
+
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".xml",
+            filetypes=[("XML files", "*.xml")],
+            title="Export Configuration"
+        )
+        if not filepath:
+            return
+
+        try:
+            root_el = ET.Element("TSPConfig", version="1.0")
+
+            #uloženie rozloženia vrcholov
+            cities_el = ET.SubElement(root_el, "Cities", count=str(len(cords)))
+            for i, (x, y) in enumerate(cords):
+                ET.SubElement(cities_el, "City", id=str(i), x=str(x), y=str(y))
+
+            #uloženie vybratých algoritmov (v poradí výberu)
+            algo_el = ET.SubElement(root_el, "Algorithms")
+            algo_el.text = ",".join(selected_algorithms)
+
+            #uloženie hyperparametrov všetkých algoritmov
+            params_el = ET.SubElement(root_el, "Parameters")
+            for k, v in entry_widgets.items():
+                ET.SubElement(params_el, "Param", key=k, value=v.get())
+
+            tree = ET.ElementTree(root_el)
+            ET.indent(tree, space="  ")  # pekné formátovanie XML súboru
+            tree.write(filepath, encoding="utf-8", xml_declaration=True)
+
+            log_message(f"Configuration exported to {filepath}", "green")
+        except Exception as e:
+            messagebox.showerror("Export Failed", f"Could not export configuration:\n{e}")
+
+    #funkcia na import konfigurácie z XML súboru
+    def import_config():
+        filepath = filedialog.askopenfilename(
+            filetypes=[("XML files", "*.xml")],
+            title="Import Configuration"
+        )
+        if not filepath:
+            return
+
+        #najprv sa celý súbor overí a spracuje, GUI sa mení až keď je všetko validné
+        try:
+            tree = ET.parse(filepath)
+            root_el = tree.getroot()
+
+            cities_el = root_el.find("Cities")
+            if cities_el is None:
+                raise ValueError("Missing <Cities> section.")
+            new_cords = []
+            for city_el in cities_el.findall("City"):
+                x = int(round(float(city_el.get("x"))))
+                y = int(round(float(city_el.get("y"))))
+                new_cords.append((x, y))
+            if len(new_cords) < 3:
+                raise ValueError("Configuration must contain at least 3 cities.")
+            if any(not (0 <= x <= size and 0 <= y <= size) for x, y in new_cords):
+                raise ValueError("City coordinates are out of the canvas range.")
+
+            valid_algos = [a.lower() for a in ALL_ALGO_NAMES]
+            algo_el = root_el.find("Algorithms")
+            new_algos = []
+            if algo_el is not None and algo_el.text:
+                new_algos = [a.strip().lower() for a in algo_el.text.split(",") if a.strip()]
+                new_algos = [a for a in new_algos if a in valid_algos]
+            if new_algos and not (1 <= len(new_algos) <= 4):
+                raise ValueError("Algorithm selection must contain between 1 and 4 algorithms.")
+
+            params_el = root_el.find("Parameters")
+            new_params = {}
+            if params_el is not None:
+                for p in params_el.findall("Param"):
+                    key = p.get("key")
+                    val = p.get("value")
+                    if key is not None and val is not None:
+                        new_params[key] = val
+        except Exception as e:
+            messagebox.showerror("Import Failed", f"Could not read configuration file:\n{e}")
+            return
+
+        #aplikovanie načítanej konfigurácie do GUI
+        global cities
+        reset()
+
+        r = 6
+        for (x, y) in new_cords:
+            canvas_y = size - y
+            dot_id = canvas.create_oval(x - r, canvas_y - r, x + r, canvas_y + r,
+                                        fill=current_color, tags="city")
+            cords.append((x, y))
+            city_shapes.append(dot_id)
+            cities += 1
+        info_label.config(text=f"Cities: {cities}")
+
+        if new_algos:
+            selected_algorithms.clear()
+            selected_algorithms.extend(new_algos)
+            refresh_param_layout()
+
+        for key, val in new_params.items():
+            if key in entry_widgets:
+                entry_widgets[key].delete(0, tk.END)
+                entry_widgets[key].insert(0, val)
+
+        log_message(f"Configuration imported from {filepath}", "green")
+        log_message(
+            f"Algorithms: {', '.join(a.upper() for a in selected_algorithms)}",
+            "blue"
+        )
+
+    # ==========================================================
     #  BUTTONS v controls_frame
     # ==========================================================
     button_style = {"font": ("Arial", 10, "bold"), "width": 20, "height": 1} # štýl buttonov
@@ -1078,6 +1202,21 @@ if __name__ == "__main__":
               command=generate_random_cities,
               bg="#FF9800", fg="white",
               font=("Arial", 10, "bold"), height=1).pack(side="left")
+
+    #frame s tlačidlami na export/import XML konfigurácie
+    config_frame = tk.Frame(controls_frame, bg="#f0f0f0")
+    config_frame.grid(row=4, column=0, columnspan=2, pady=5)
+
+    tk.Button(config_frame, text="💾 Export XML",
+              command=export_config,
+              bg="#00838F", fg="white",
+              font=("Arial", 9, "bold"), width=13, height=1).pack(side="left", padx=(0, 5))
+
+    tk.Button(config_frame, text="📂 Import XML",
+              command=import_config,
+              bg="#00838F", fg="white",
+              font=("Arial", 9, "bold"), width=13, height=1).pack(side="left")
+
     city_shapes = []
     canvas.bind("<Button-3>", undo) #prvím tlačidlom myši sa vymaže posledný vrchol
     canvas.bind("<Button-1>", on_click) #lavým tlačidlom myši sa pridá vrchol
